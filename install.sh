@@ -23,6 +23,9 @@ REQUIRED_PATHS=(
     "SKILL.md"
     "scripts"
     "resources"
+)
+# Optional paths — copied if present, skipped silently if not.
+OPTIONAL_PATHS=(
     "docs"
 )
 
@@ -140,8 +143,21 @@ copy_skill() {
     fi
     mkdir -p "${dest}"
 
+    # Collect the set of paths to actually copy: every REQUIRED_PATHS entry
+    # plus any OPTIONAL_PATHS that exist in the source tree.
+    local paths_to_copy=()
+    local p
+    for p in "${REQUIRED_PATHS[@]}"; do
+        paths_to_copy+=("${p}")
+    done
+    for p in "${OPTIONAL_PATHS[@]}"; do
+        if [[ -e "${src}/${p}" ]]; then
+            paths_to_copy+=("${p}")
+        fi
+    done
+
     if command -v rsync >/dev/null 2>&1; then
-        for required_path in "${REQUIRED_PATHS[@]}"; do
+        for p in "${paths_to_copy[@]}"; do
             rsync -a \
                 --exclude ".git/" \
                 --exclude ".github/" \
@@ -150,7 +166,7 @@ copy_skill() {
                 --exclude "seo-report-*.html" \
                 --exclude "plan.md" \
                 --exclude "tmp/" \
-                "${src}/${required_path}" "${dest}/"
+                "${src}/${p}" "${dest}/"
         done
     else
         (
@@ -168,7 +184,7 @@ copy_skill() {
                 --exclude="tmp" \
                 --exclude="tmp/*" \
                 -cf - \
-                "${REQUIRED_PATHS[@]}"
+                "${paths_to_copy[@]}"
         ) | (
             cd "${dest}"
             tar -xf -
@@ -483,27 +499,74 @@ SHOULD_CLONE=0
 if [[ "${ONLINE_MODE}" -eq 1 ]]; then
     require_cmd curl
     require_cmd tar
-    echo "Fetching latest release tag from ${GITHUB_REPO}..."
-    LATEST_TAG=$(curl -sL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" \
-        | grep '"tag_name":' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' || true)
     TEMP_DIR="$(mktemp -d)"
-    if [[ -z "${LATEST_TAG}" || "${LATEST_TAG}" == "null" ]]; then
-        echo "Could not determine latest tag, falling back to ${GITHUB_REF} branch archive..."
-        curl -sL "https://github.com/${GITHUB_REPO}/archive/refs/heads/${GITHUB_REF}.tar.gz" \
-            | tar -xz -C "${TEMP_DIR}" --strip-components=1
-    else
-        ASSET_URL="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_TAG}/agentic-seo-skill-${LATEST_TAG}.tar.gz"
-        FALLBACK_URL="https://github.com/${GITHUB_REPO}/archive/refs/tags/${LATEST_TAG}.tar.gz"
-        echo "Downloading latest release package: ${LATEST_TAG}"
-        if curl -fsSL --output "${TEMP_DIR}/package.tar.gz" "${ASSET_URL}" 2>/dev/null; then
-            tar -xz -C "${TEMP_DIR}" --strip-components=1 -f "${TEMP_DIR}/package.tar.gz"
-            rm -f "${TEMP_DIR}/package.tar.gz"
+    EXTRACT_DIR="${TEMP_DIR}/extracted"
+    mkdir -p "${EXTRACT_DIR}"
+    PKG="${TEMP_DIR}/package"
+
+    # Resolve a download URL. Preference order:
+    #   1. The first .tar.gz / .tgz asset listed on the latest release.
+    #   2. The latest release source tarball (always exists for any tag).
+    #   3. The configured branch archive (final fallback).
+    echo "Fetching latest release info from ${GITHUB_REPO}..."
+    RELEASE_JSON=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" 2>/dev/null || true)
+    LATEST_TAG=$(printf '%s' "${RELEASE_JSON}" | grep '"tag_name":' | head -n 1 | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)
+
+    DOWNLOAD_URL=""
+    DOWNLOAD_DESC=""
+    if [[ -n "${LATEST_TAG}" && "${LATEST_TAG}" != "null" ]]; then
+        echo "  Latest release: ${LATEST_TAG}"
+        ASSET_URL=$(
+            printf '%s' "${RELEASE_JSON}" \
+                | grep -oE '"browser_download_url": *"[^"]+\.(tar\.gz|tgz)"' \
+                | head -n 1 \
+                | sed -E 's/.*"browser_download_url": *"([^"]+)".*/\1/' || true
+        )
+        if [[ -n "${ASSET_URL}" ]]; then
+            DOWNLOAD_URL="${ASSET_URL}"
+            DOWNLOAD_DESC="release asset: $(basename "${ASSET_URL}")"
         else
-            echo "Release asset not available, falling back to source archive..."
-            curl -sL "${FALLBACK_URL}" | tar -xz -C "${TEMP_DIR}" --strip-components=1
+            DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/archive/refs/tags/${LATEST_TAG}.tar.gz"
+            DOWNLOAD_DESC="source archive for tag ${LATEST_TAG}"
         fi
     fi
-    SRC_DIR="${TEMP_DIR}"
+    if [[ -z "${DOWNLOAD_URL}" ]]; then
+        DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/archive/refs/heads/${GITHUB_REF}.tar.gz"
+        DOWNLOAD_DESC="branch archive: ${GITHUB_REF}"
+    fi
+    echo "  Downloading ${DOWNLOAD_DESC}..."
+    if ! curl -fsSL -o "${PKG}" "${DOWNLOAD_URL}"; then
+        echo "Error: download failed: ${DOWNLOAD_URL}" >&2
+        exit 1
+    fi
+    if ! tar -xzf "${PKG}" -C "${EXTRACT_DIR}"; then
+        echo "Error: extract failed for ${PKG}" >&2
+        exit 1
+    fi
+    rm -f "${PKG}"
+
+    # Locate SKILL.md. Release-asset tarballs may be flat (SKILL.md at root);
+    # GitHub source tarballs nest contents under a single top-level dir like
+    # `Repo-Tag/`. Support either.
+    if [[ -f "${EXTRACT_DIR}/SKILL.md" ]]; then
+        SRC_DIR="${EXTRACT_DIR}"
+    else
+        SRC_DIR=""
+        for d in "${EXTRACT_DIR}"/*/; do
+            if [[ -f "${d}SKILL.md" ]]; then
+                SRC_DIR="${d%/}"
+                break
+            fi
+        done
+        if [[ -z "${SRC_DIR}" ]]; then
+            echo "Error: downloaded archive did not contain SKILL.md." >&2
+            echo "  Source URL: ${DOWNLOAD_URL}" >&2
+            echo "  Extract dir: ${EXTRACT_DIR}" >&2
+            echo "  Top-level entries:" >&2
+            ls -1 "${EXTRACT_DIR}" 2>/dev/null | head -15 | sed 's/^/    /' >&2
+            exit 1
+        fi
+    fi
     echo "Using downloaded package source: ${SRC_DIR}"
 elif [[ -n "${REPO_PATH}" ]]; then
     SRC_DIR="$(resolve_dir "${REPO_PATH}")"

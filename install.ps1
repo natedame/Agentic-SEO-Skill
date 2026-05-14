@@ -18,7 +18,9 @@ $SOURCE_MODE     = 'auto'
 $REPO_PATH       = ''
 $TEMP_DIR        = $null
 
-$REQUIRED_PATHS  = @('SKILL.md', 'scripts', 'resources', 'docs')
+$REQUIRED_PATHS  = @('SKILL.md', 'scripts', 'resources')
+# Optional paths — copied if present in the source, skipped silently if not.
+$OPTIONAL_PATHS  = @('docs')
 
 # Shared invocation block written into every IDE-native format file.
 $SKILL_INVOCATION_TEXT = @'
@@ -233,6 +235,14 @@ function Copy-Skill {
         }
     }
 
+    # Build the actual list of paths to copy: required + any optional that
+    # happen to be present in the source.
+    $pathsToCopy = [System.Collections.Generic.List[string]]::new()
+    foreach ($p in $REQUIRED_PATHS) { [void]$pathsToCopy.Add($p) }
+    foreach ($p in $OPTIONAL_PATHS) {
+        if (Test-Path -LiteralPath (Join-Path $Src $p)) { [void]$pathsToCopy.Add($p) }
+    }
+
     $destParent = Split-Path -Path $Dest -Parent
     if ($destParent -and -not (Test-Path -LiteralPath $destParent)) {
         New-Item -ItemType Directory -Path $destParent -Force | Out-Null
@@ -242,7 +252,7 @@ function Copy-Skill {
     }
     New-Item -ItemType Directory -Path $Dest -Force | Out-Null
 
-    foreach ($req in $REQUIRED_PATHS) {
+    foreach ($req in $pathsToCopy) {
         $srcReq = Join-Path $Src $req
         if (Test-Path -LiteralPath $srcReq -PathType Container) {
             $destReq = Join-Path $Dest $req
@@ -552,36 +562,72 @@ $SHOULD_CLONE = $false
 # ── Source resolution ─────────────────────────────────────────────────────────
 
 if ($ONLINE_MODE) {
-    Write-Host "Fetching latest release tag from $GITHUB_REPO..."
-    $TEMP_DIR = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString('N'))
-    New-Item -ItemType Directory -Path $TEMP_DIR -Force | Out-Null
-    $zipPath = Join-Path $TEMP_DIR 'package.zip'
+    $TEMP_DIR    = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString('N'))
+    $extractRoot = Join-Path $TEMP_DIR 'extracted'
+    New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+    $zipPath     = Join-Path $TEMP_DIR 'package.zip'
+
+    # Resolve a download URL. Preference order:
+    #   1. Latest release asset listed by the GitHub API (any filename).
+    #   2. Source archive for the latest release tag.
+    #   3. Branch archive for $GITHUB_REF.
+    Write-Host "Fetching latest release info from $GITHUB_REPO..."
+    $downloadUrl = $null
+    $downloadDesc = $null
     try {
         $releaseInfo = Invoke-RestMethod `
             -Uri "https://api.github.com/repos/$GITHUB_REPO/releases/latest" `
             -ErrorAction Stop
         $latestTag = $releaseInfo.tag_name
-        if ([string]::IsNullOrWhiteSpace($latestTag)) { throw 'Tag empty' }
-        Write-Host "Downloading latest release package: $latestTag"
-        $assetUrl = "https://github.com/$GITHUB_REPO/releases/download/$latestTag/agentic-seo-skill-$latestTag.zip"
-        try {
-            Invoke-WebRequest -Uri $assetUrl -OutFile $zipPath -ErrorAction Stop
-        }
-        catch {
-            Write-Host 'Release asset not available, falling back to source archive...'
-            $fallbackUrl = "https://github.com/$GITHUB_REPO/archive/refs/tags/$latestTag.zip"
-            Invoke-WebRequest -Uri $fallbackUrl -OutFile $zipPath
+        if (-not [string]::IsNullOrWhiteSpace($latestTag)) {
+            Write-Host "  Latest release: $latestTag"
+            # Pick the first archive-like asset (zip / tar.gz / tgz), case-insensitive.
+            $asset = $releaseInfo.assets |
+                Where-Object { $_.name -match '\.(zip|tar\.gz|tgz)$' } |
+                Select-Object -First 1
+            if ($asset) {
+                $downloadUrl  = $asset.browser_download_url
+                $downloadDesc = "release asset: $($asset.name)"
+            }
+            else {
+                $downloadUrl  = "https://github.com/$GITHUB_REPO/archive/refs/tags/$latestTag.zip"
+                $downloadDesc = "source archive for tag $latestTag"
+            }
         }
     }
     catch {
-        Write-Host "Could not determine latest tag, falling back to $GITHUB_REF branch archive..."
-        $mainUrl = "https://github.com/$GITHUB_REPO/archive/refs/heads/$GITHUB_REF.zip"
-        Invoke-WebRequest -Uri $mainUrl -OutFile $zipPath
+        # API call failed — fall through to branch archive below.
     }
-    Expand-Archive -Path $zipPath -DestinationPath $TEMP_DIR -Force
+    if (-not $downloadUrl) {
+        $downloadUrl  = "https://github.com/$GITHUB_REPO/archive/refs/heads/$GITHUB_REF.zip"
+        $downloadDesc = "branch archive: $GITHUB_REF"
+    }
+    Write-Host "  Downloading $downloadDesc..."
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+
+    Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
     Remove-Item -Path $zipPath -Force
-    $extractedDir = Get-ChildItem -Path $TEMP_DIR -Directory | Select-Object -First 1
-    $SRC_DIR = $extractedDir.FullName
+
+    # Locate SKILL.md. Release-asset zips may be flat (SKILL.md at the root);
+    # GitHub source archives nest contents under one top-level dir like
+    # `Repo-Tag/`. Support either.
+    if (Test-Path -LiteralPath (Join-Path $extractRoot 'SKILL.md') -PathType Leaf) {
+        $SRC_DIR = $extractRoot
+    }
+    else {
+        $found = Get-ChildItem -LiteralPath $extractRoot -Directory -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md') -PathType Leaf } |
+            Select-Object -First 1
+        if (-not $found) {
+            $entries = (
+                Get-ChildItem -LiteralPath $extractRoot -Force -ErrorAction SilentlyContinue |
+                    Select-Object -First 15 |
+                    ForEach-Object { $_.Name }
+            ) -join ', '
+            throw "Error: downloaded archive did not contain SKILL.md.`n  Source URL: $downloadUrl`n  Extract dir: $extractRoot`n  Top-level entries: $entries"
+        }
+        $SRC_DIR = $found.FullName
+    }
     Write-Host "Using downloaded package source: $SRC_DIR"
 }
 elseif (-not [string]::IsNullOrWhiteSpace($REPO_PATH)) {

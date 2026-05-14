@@ -26,27 +26,45 @@ jobs:
 
       - name: Build package
         run: |
+          # Stage the payload OUTSIDE the repo so the archive doesn't
+          # self-include the `dist/` directory we create below.
+          STAGE="${RUNNER_TEMP}/${PKG_NAME}"
+          mkdir -p "${STAGE}"
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='__pycache__/' \
+            --exclude='*.pyc' \
+            --exclude='LICENSE' --exclude='LICENSE.*' \
+            --exclude='README*' \
+            --exclude='.gitignore*' \
+            --exclude='seo-report-*.html' \
+            --exclude='plan.md' \
+            --exclude='improvements.md' \
+            --exclude='tmp/' \
+            --exclude='.env' --exclude='.env.*' \
+            ./ "${STAGE}/"
+
           mkdir -p dist
-          zip -r "dist/${PKG_NAME}.zip" . \
-            -x ".git" ".git/*" ".git/**" \
-            -x ".github" ".github/*" ".github/**" \
-            -x "__pycache__/*" "scripts/__pycache__/*" \
-            -x "*.pyc" \
-            -x "LICENSE" "LICENSE.*" \
-            -x "README*" \
-            -x "docs" "docs/*" "docs/**" \
-            -x ".gitignore*" \
-            -x "seo-report-*.html"
+          # Archive contents are flat (no top-level dir wrapper); installers
+          # auto-detect either layout.
+          (cd "${STAGE}" && zip -r "${GITHUB_WORKSPACE}/dist/${PKG_NAME}.zip" .)
+          (cd "${STAGE}" && tar -czf "${GITHUB_WORKSPACE}/dist/${PKG_NAME}.tar.gz" .)
+          ls -la dist/
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PKG_NAME }}
-          path: dist/${{ env.PKG_NAME }}.zip
+          path: |
+            dist/${{ env.PKG_NAME }}.zip
+            dist/${{ env.PKG_NAME }}.tar.gz
 
       - name: Publish release asset
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ env.REPO_NAME }} ${{ env.TAG }}
           generate_release_notes: true
-          files: dist/${{ env.PKG_NAME }}.zip
+          files: |
+            dist/${{ env.PKG_NAME }}.zip
+            dist/${{ env.PKG_NAME }}.tar.gz
