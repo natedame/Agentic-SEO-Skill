@@ -1,4 +1,4 @@
-# SEO Skill (Multi-IDE)
+# SEO Skill (Antigravity / Claude / Codex / Cursor)
 
 An LLM-first SEO analysis skill for agent IDEs and AI coding assistants, with 16 specialized sub-skills, 10 specialist agents, and 33 scripts used as evidence collectors and workflow automation.
 

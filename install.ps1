@@ -187,30 +187,6 @@ function Get-RelativePathCompat {
     return $relative.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
 }
 
-function Invoke-ExternalCommand {
-    param(
-        [Parameter(Mandatory = $true)][string]$Command,
-        [string[]]$Arguments = @()
-    )
-    # Native call operator handles every kind of Windows executable: .exe, .cmd,
-    # .bat shims, and Linux/macOS binaries. Start-Process trips on shims with
-    # "%1 is not a valid Win32 application" so we deliberately avoid it.
-    try {
-        if ($Arguments -and $Arguments.Count -gt 0) {
-            & $Command @Arguments
-        }
-        else {
-            & $Command
-        }
-    }
-    catch {
-        Write-Host ("  Error invoking {0}: {1}" -f $Command, $_.Exception.Message)
-        return 1
-    }
-    if ($null -eq $LASTEXITCODE) { return 0 }
-    return $LASTEXITCODE
-}
-
 function Test-IsExcluded {
     param(
         [Parameter(Mandatory = $true)][string]$RelativePath,
@@ -629,21 +605,51 @@ else {
 
 try {
     if ($SHOULD_CLONE) {
-        Require-Cmd -Cmd 'git'
+        # Resolve git to its real executable (not a PS alias, not a profile
+        # function) so the call operator below is guaranteed to invoke the
+        # real git binary / .cmd shim.
+        $gitCmd = Get-Command -Name 'git' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $gitCmd) {
+            throw "Error: git executable not found on PATH. Install Git for Windows (https://git-scm.com/download/win) or pass --online to download a release archive instead."
+        }
+        $gitExe = $gitCmd.Source
+
         $TEMP_DIR = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $TEMP_DIR -Force | Out-Null
         $cloneDir = Join-Path $TEMP_DIR 'repo'
         Write-Host "Cloning source repo: $REPO_URL"
-        $ec = Invoke-ExternalCommand -Command 'git' -Arguments @('clone','--depth','1',$REPO_URL,$cloneDir)
-        if ($ec -ne 0) {
-            throw "Error: failed to clone source repo: $REPO_URL`nTip: pass --repo-path <local-path> or --online to avoid cloning."
+        Write-Host "  using git:   $gitExe"
+        Write-Host "  destination: $cloneDir"
+
+        # Direct invocation — git's stdout/stderr stream through to the user.
+        # No wrapper function (would otherwise capture stdout into a variable
+        # and leave the user wondering whether git actually ran).
+        & $gitExe clone --depth 1 $REPO_URL $cloneDir
+        $cloneExit = $LASTEXITCODE
+
+        if ($cloneExit -ne 0) {
+            throw "Error: git clone exited with code $cloneExit.`nTip: pass --online to download a release archive instead of cloning."
+        }
+        if (-not (Test-Path -LiteralPath $cloneDir -PathType Container)) {
+            throw "Error: git clone reported success but did not create the destination directory: $cloneDir"
         }
         $SRC_DIR = $cloneDir
         Write-Host "Using remote source: $SRC_DIR"
     }
 
     if (-not (Test-Path -LiteralPath (Join-Path $SRC_DIR 'SKILL.md') -PathType Leaf)) {
-        throw "Error: SKILL.md not found in source directory: $SRC_DIR"
+        $listing = ''
+        if (Test-Path -LiteralPath $SRC_DIR -PathType Container) {
+            $entries = Get-ChildItem -LiteralPath $SRC_DIR -Force -ErrorAction SilentlyContinue |
+                Select-Object -First 15 |
+                ForEach-Object { $_.Name }
+            if ($entries) { $listing = "`n  Source dir contents (first 15): $($entries -join ', ')" }
+            else { $listing = "`n  Source dir is empty." }
+        }
+        else {
+            $listing = "`n  Source dir does not exist on disk."
+        }
+        throw "Error: SKILL.md not found in source directory: $SRC_DIR$listing"
     }
 
     Write-Host ''
@@ -695,32 +701,37 @@ try {
     if ($INSTALL_DEPS) {
         Write-Host ''
         Write-Host 'Installing Python dependencies...'
+
+        # Direct invocation so pip's progress is visible. Splat the prefix
+        # args (e.g. '-3' for the `py` launcher) ahead of the pip command.
         $reqPath = Join-Path $SRC_DIR 'requirements.txt'
         $depsInstalled = $false
+
         if (Test-Path -LiteralPath $reqPath) {
-            $ec = Invoke-ExternalCommand -Command $PY.Command -Arguments ($PY.PrefixArgs + @('-m','pip','install','--user','-r',$reqPath))
-            if ($ec -eq 0) {
+            & $PY.Command @($PY.PrefixArgs) -m pip install --user -r $reqPath
+            if ($LASTEXITCODE -eq 0) {
                 Write-Host '  Installed dependencies from requirements.txt'
                 $depsInstalled = $true
             }
         }
         if (-not $depsInstalled) {
-            $ec = Invoke-ExternalCommand -Command $PY.Command -Arguments ($PY.PrefixArgs + @('-m','pip','install','--user','requests','beautifulsoup4'))
-            if ($ec -eq 0) {
+            & $PY.Command @($PY.PrefixArgs) -m pip install --user requests beautifulsoup4
+            if ($LASTEXITCODE -eq 0) {
                 Write-Host '  Installed requests + beautifulsoup4'
                 $depsInstalled = $true
             }
         }
         if (-not $depsInstalled) {
-            Write-Warning "  Could not auto-install Python dependencies. Install manually:`n    $($PY.Command) $($PY.PrefixArgs -join ' ') -m pip install --user requests beautifulsoup4"
+            $pyCli = ($PY.Command + ' ' + ($PY.PrefixArgs -join ' ')).Trim()
+            Write-Warning "  Could not auto-install Python dependencies. Install manually:`n    $pyCli -m pip install --user requests beautifulsoup4"
         }
 
         if ($INSTALL_PLAYWRIGHT) {
-            $pipEc = Invoke-ExternalCommand -Command $PY.Command -Arguments ($PY.PrefixArgs + @('-m','pip','install','--user','playwright'))
             $playwrightOk = $false
-            if ($pipEc -eq 0) {
-                $pwEc = Invoke-ExternalCommand -Command $PY.Command -Arguments ($PY.PrefixArgs + @('-m','playwright','install','chromium'))
-                $playwrightOk = ($pwEc -eq 0)
+            & $PY.Command @($PY.PrefixArgs) -m pip install --user playwright
+            if ($LASTEXITCODE -eq 0) {
+                & $PY.Command @($PY.PrefixArgs) -m playwright install chromium
+                $playwrightOk = ($LASTEXITCODE -eq 0)
             }
             if ($playwrightOk) {
                 Write-Host '  Installed Playwright + Chromium'
