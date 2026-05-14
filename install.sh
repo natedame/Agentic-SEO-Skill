@@ -19,14 +19,12 @@ REPO_PATH=""
 TEMP_DIR=""
 
 # Payload paths copied into each install destination.
+# docs/ is intentionally excluded — it only holds README screenshots and is
+# not needed in the installed skill.
 REQUIRED_PATHS=(
     "SKILL.md"
     "scripts"
     "resources"
-)
-# Optional paths — copied if present, skipped silently if not.
-OPTIONAL_PATHS=(
-    "docs"
 )
 
 usage() {
@@ -143,21 +141,9 @@ copy_skill() {
     fi
     mkdir -p "${dest}"
 
-    # Collect the set of paths to actually copy: every REQUIRED_PATHS entry
-    # plus any OPTIONAL_PATHS that exist in the source tree.
-    local paths_to_copy=()
-    local p
-    for p in "${REQUIRED_PATHS[@]}"; do
-        paths_to_copy+=("${p}")
-    done
-    for p in "${OPTIONAL_PATHS[@]}"; do
-        if [[ -e "${src}/${p}" ]]; then
-            paths_to_copy+=("${p}")
-        fi
-    done
-
     if command -v rsync >/dev/null 2>&1; then
-        for p in "${paths_to_copy[@]}"; do
+        local p
+        for p in "${REQUIRED_PATHS[@]}"; do
             rsync -a \
                 --exclude ".git/" \
                 --exclude ".github/" \
@@ -184,7 +170,7 @@ copy_skill() {
                 --exclude="tmp" \
                 --exclude="tmp/*" \
                 -cf - \
-                "${paths_to_copy[@]}"
+                "${REQUIRED_PATHS[@]}"
         ) | (
             cd "${dest}"
             tar -xf -

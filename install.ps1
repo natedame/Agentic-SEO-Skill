@@ -18,9 +18,9 @@ $SOURCE_MODE     = 'auto'
 $REPO_PATH       = ''
 $TEMP_DIR        = $null
 
+# docs/ is intentionally excluded — it only holds README screenshots and is
+# not needed in the installed skill.
 $REQUIRED_PATHS  = @('SKILL.md', 'scripts', 'resources')
-# Optional paths — copied if present in the source, skipped silently if not.
-$OPTIONAL_PATHS  = @('docs')
 
 # Shared invocation block written into every IDE-native format file.
 $SKILL_INVOCATION_TEXT = @'
@@ -235,14 +235,6 @@ function Copy-Skill {
         }
     }
 
-    # Build the actual list of paths to copy: required + any optional that
-    # happen to be present in the source.
-    $pathsToCopy = [System.Collections.Generic.List[string]]::new()
-    foreach ($p in $REQUIRED_PATHS) { [void]$pathsToCopy.Add($p) }
-    foreach ($p in $OPTIONAL_PATHS) {
-        if (Test-Path -LiteralPath (Join-Path $Src $p)) { [void]$pathsToCopy.Add($p) }
-    }
-
     $destParent = Split-Path -Path $Dest -Parent
     if ($destParent -and -not (Test-Path -LiteralPath $destParent)) {
         New-Item -ItemType Directory -Path $destParent -Force | Out-Null
@@ -252,7 +244,7 @@ function Copy-Skill {
     }
     New-Item -ItemType Directory -Path $Dest -Force | Out-Null
 
-    foreach ($req in $pathsToCopy) {
+    foreach ($req in $REQUIRED_PATHS) {
         $srcReq = Join-Path $Src $req
         if (Test-Path -LiteralPath $srcReq -PathType Container) {
             $destReq = Join-Path $Dest $req
