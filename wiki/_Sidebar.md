@@ -8,5 +8,3 @@
 - [[Script Inventory]]
 - [[Release and Packaging]]
 - [[Troubleshooting]]
-- [[Live Audit Example]]
-

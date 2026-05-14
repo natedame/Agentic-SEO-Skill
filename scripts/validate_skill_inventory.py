@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
 SKILL = ROOT / "SKILL.md"
+WIKI_SCRIPT_INVENTORY = ROOT / "wiki" / "Script-Inventory.md"
 SKILLS_DIR = ROOT / "resources" / "skills"
 AGENTS_DIR = ROOT / "resources" / "agents"
 SCRIPTS_DIR = ROOT / "scripts"
@@ -39,6 +40,8 @@ def main() -> int:
 
     readme_exists = README.exists()
     readme_text = README.read_text(encoding="utf-8") if readme_exists else ""
+    wiki_inventory_exists = WIKI_SCRIPT_INVENTORY.exists()
+    wiki_inventory_text = WIKI_SCRIPT_INVENTORY.read_text(encoding="utf-8") if wiki_inventory_exists else ""
     skill_text = SKILL.read_text(encoding="utf-8")
 
     skill_files = list_files(SKILLS_DIR, "*.md")
@@ -91,13 +94,14 @@ def main() -> int:
     if readme_exists:
         for path in all_scripts:
             name = path.name
-            if name not in readme_text:
-                errors.append(f"README.md script inventory does not list {name}")
+            if name not in readme_text and name not in wiki_inventory_text:
+                errors.append(f"script inventory docs do not list {name}")
 
     payload = {
         "expected": expected,
         "observed": observed,
         "readme_present": readme_exists,
+        "wiki_inventory_present": wiki_inventory_exists,
         "skills": [path.name for path in skill_files],
         "agents": [path.name for path in agent_files],
         "scripts": [path.name for path in all_scripts],
