@@ -2,6 +2,21 @@
 
 All notable changes to this project should be documented here.
 
+## v3.0.1 - 2026-05-15
+
+### Changed
+
+- Expanded the GitHub Wiki with installation, example prompts, report generation, troubleshooting, and script inventory guidance.
+- Shortened the README script inventory and linked to the full wiki inventory.
+- Updated README credits wording to reflect inspiration from `claude-seo` while documenting this repository as an independently evolved package.
+
+### Fixed
+
+- Suppressed noindex pages from actionable thin-content and duplicate-content findings.
+- Treated Next.js responsive fill images as dimension-safe in image inventory checks.
+- Fixed readability paragraph counting for normal HTML paragraph tags.
+- Normalized reference freshness markers so UTC CI runners do not flag same-day updates as future dates.
+
 ## v3.0.0 - 2026-05-15
 
 ### Added
