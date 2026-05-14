@@ -606,9 +606,9 @@ python3 scripts/generate_report.py "$URL"
 
 ## 🙏 Credits
 
-This project is heavily built from **[claude-seo](https://github.com/AgriciDaniel/claude-seo)** by **[AgriciDaniel](https://github.com/AgriciDaniel)**. All core SEO logic, reference data, agent definitions, utility scripts, and sub-skill instructions originate from that project.
+This project was originally inspired by **[claude-seo](https://github.com/AgriciDaniel/claude-seo)** by **[AgriciDaniel](https://github.com/AgriciDaniel)**.
 
-This repository restructures and adapts the content to function as a compatible skill package for **Antigravity IDE**, **Claude Code**, and **Codex**, while preserving the same core skill layout (`SKILL.md` + `scripts/` + `resources/`).
+Agentic SEO Skill has since evolved into a broader, independently maintained skill package with expanded agent workflows, release packaging, GitHub SEO automation, reporting, validation, and many additional scripts. The project keeps the same practical goal: make SEO analysis usable inside agent IDEs and AI coding assistants through a clear skill layout (`SKILL.md` + `scripts/` + `resources/`).
 
 ---
 
@@ -616,4 +616,4 @@ This repository restructures and adapts the content to function as a compatible 
 
 Licensed under the MIT License. See [LICENSE](LICENSE).
 
-Portions are derived from [claude-seo](https://github.com/AgriciDaniel/claude-seo), which is also MIT-licensed.
+Earlier inspiration and some concepts trace back to [claude-seo](https://github.com/AgriciDaniel/claude-seo), which is also MIT-licensed.
