@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentic-seo-skill"
-version = "0.1.0"
+version = "3.0.0"
 description = "Deterministic SEO audit scripts and report generation for Agentic SEO workflows."
 readme = "README.md"
 requires-python = ">=3.10"

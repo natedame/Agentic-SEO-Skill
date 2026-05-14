@@ -2,7 +2,7 @@
 
 All notable changes to this project should be documented here.
 
-## Unreleased
+## v3.0.0 - 2026-05-15
 
 ### Added
 
@@ -13,7 +13,7 @@ All notable changes to this project should be documented here.
 
 ### Changed
 
-- Documented script inventory now reflects 36 scripts: 35 Python scripts plus one shell helper.
+- Documented script inventory now reflects 89 scripts: 88 Python scripts plus one shell helper.
 - Release packaging workflow now only publishes for `v*` tags.
 - `.gitignore` now excludes common Python caches, build output, generated SEO reports, screenshots, traffic archives, and local credentials.
 
