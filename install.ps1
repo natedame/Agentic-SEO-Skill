@@ -18,15 +18,15 @@ $SOURCE_MODE     = 'auto'
 $REPO_PATH       = ''
 $TEMP_DIR        = $null
 
-# docs/ is intentionally excluded — it only holds README screenshots and is
-# not needed in the installed skill.
+# docs/ and tests/ are intentionally excluded — docs/ only holds README
+# screenshots, and tests/ is for repository CI rather than installed skills.
 $REQUIRED_PATHS  = @('SKILL.md', 'scripts', 'resources')
 
 # Shared invocation block written into every IDE-native format file.
 $SKILL_INVOCATION_TEXT = @'
 # Agentic SEO Skill
 
-You have access to the Agentic SEO analysis skill (16 sub-skills, 10 specialist agents, 33 scripts).
+You have access to the Agentic SEO analysis skill (16 sub-skills, 10 specialist agents, 89 scripts).
 
 ## When to activate
 
@@ -202,6 +202,7 @@ function Test-IsExcluded {
 
     if ($segments -contains '.git') { return $true }
     if ($segments -contains '.github') { return $true }
+    if ($segments -contains 'tests') { return $true }
     if ($segments -contains 'tmp') { return $true }
     if ($segments -contains '__pycache__') { return $true }
 

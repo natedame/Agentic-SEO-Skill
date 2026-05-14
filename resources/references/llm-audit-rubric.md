@@ -1,3 +1,5 @@
+<!-- Updated: 2026-05-15 -->
+
 # LLM Audit Rubric
 
 Use this rubric for all SEO analyses to keep outputs consistent across:

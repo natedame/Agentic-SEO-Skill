@@ -20,7 +20,6 @@ import json
 import re
 import sys
 import time
-import urllib.request
 from collections import Counter, defaultdict
 from urllib.parse import urlparse, urljoin
 
@@ -31,8 +30,10 @@ except ImportError:
           file=sys.stderr)
     sys.exit(1)
 
-
-USER_AGENT = "Mozilla/5.0 (compatible; SEOSkill-LinkProfile/1.0)"
+try:
+    from lib.safe_http import safe_get
+except ImportError:
+    from scripts.lib.safe_http import safe_get
 
 
 # ---------------------------------------------------------------------------
@@ -42,9 +43,8 @@ USER_AGENT = "Mozilla/5.0 (compatible; SEOSkill-LinkProfile/1.0)"
 def fetch_page(url: str, timeout: int = 10) -> tuple:
     """Return (final_url, html) or (url, '')."""
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.url, resp.read().decode("utf-8", errors="ignore")
+        resp = safe_get(url, timeout=timeout)
+        return resp.url, resp.text
     except Exception:
         return url, ""
 

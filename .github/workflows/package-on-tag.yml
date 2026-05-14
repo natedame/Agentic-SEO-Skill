@@ -3,7 +3,7 @@ name: Package On Tag
 on:
   push:
     tags:
-      - "*"
+      - "v*"
 
 jobs:
   package:
@@ -30,21 +30,18 @@ jobs:
           # self-include the `dist/` directory we create below.
           STAGE="${RUNNER_TEMP}/${PKG_NAME}"
           mkdir -p "${STAGE}"
-          rsync -a \
-            --exclude='.git/' \
-            --exclude='.github/' \
-            --exclude='__pycache__/' \
-            --exclude='*.pyc' \
-            --exclude='LICENSE' --exclude='LICENSE.*' \
-            --exclude='README*' \
-            --exclude='.gitignore*' \
-            --exclude='seo-report-*.html' \
-            --exclude='plan.md' \
-            --exclude='improvements.md' \
-            --exclude='tmp/' \
-            --exclude='docs/' \
-            --exclude='.env' --exclude='.env.local' --exclude='.env.*.local' \
-            ./ "${STAGE}/"
+
+          # Skill runtime allowlist. Repository assets such as tests/, docs/,
+          # CI, README, governance files, and packaging metadata are not needed
+          # inside installed skill bundles.
+          for path in SKILL.md scripts resources; do
+            rsync -a \
+              --exclude='__pycache__/' \
+              --exclude='*.pyc' \
+              --exclude='seo-report-*.html' \
+              --exclude='tmp/' \
+              "${path}" "${STAGE}/"
+          done
 
           mkdir -p dist
           # Archive contents are flat (no top-level dir wrapper); installers

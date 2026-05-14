@@ -16,13 +16,17 @@ import argparse
 import json
 import re
 import sys
-import urllib.request
 
 try:
     from bs4 import BeautifulSoup
     HAS_BS4 = True
 except ImportError:
     HAS_BS4 = False
+
+try:
+    from lib.safe_http import safe_get
+except ImportError:
+    from scripts.lib.safe_http import safe_get
 
 
 def count_syllables(word: str) -> int:
@@ -330,12 +334,7 @@ def main():
         text = args.text
     elif args.url:
         try:
-            req = urllib.request.Request(
-                args.url,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; SEOBot/1.0)"},
-            )
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                content = resp.read().decode("utf-8", errors="ignore")
+            content = safe_get(args.url, timeout=20).text
             if "<html" in content.lower() or "<body" in content.lower():
                 text = extract_text(content)
             else:

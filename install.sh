@@ -19,8 +19,8 @@ REPO_PATH=""
 TEMP_DIR=""
 
 # Payload paths copied into each install destination.
-# docs/ is intentionally excluded — it only holds README screenshots and is
-# not needed in the installed skill.
+# docs/ and tests/ are intentionally excluded — docs/ only holds README
+# screenshots, and tests/ is for repository CI rather than installed skills.
 REQUIRED_PATHS=(
     "SKILL.md"
     "scripts"
@@ -151,6 +151,7 @@ copy_skill() {
                 --exclude "*.pyc" \
                 --exclude "seo-report-*.html" \
                 --exclude "plan.md" \
+                --exclude "tests/" \
                 --exclude "tmp/" \
                 "${src}/${p}" "${dest}/"
         done
@@ -167,6 +168,8 @@ copy_skill() {
                 --exclude="*.pyc" \
                 --exclude="seo-report-*.html" \
                 --exclude="plan.md" \
+                --exclude="tests" \
+                --exclude="tests/*" \
                 --exclude="tmp" \
                 --exclude="tmp/*" \
                 -cf - \
@@ -247,7 +250,7 @@ _skill_invocation_text() {
     cat <<'SKILL_CONTENT'
 # Agentic SEO Skill
 
-You have access to the Agentic SEO analysis skill (16 sub-skills, 10 specialist agents, 33 scripts).
+You have access to the Agentic SEO analysis skill (16 sub-skills, 10 specialist agents, 89 scripts).
 
 ## When to activate
 
