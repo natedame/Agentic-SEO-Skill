@@ -2,18 +2,29 @@
 """
 Fetch Core Web Vitals and performance data from Google PageSpeed Insights API.
 
-Uses the free PSI API v5 (no API key required, rate-limited).
+Uses the free PSI API v5. An API key is optional but recommended — without one
+Google rate-limits the endpoint aggressively. To avoid pasting the key on the
+CLI, the script reads it (in priority order) from:
+
+    1. ``--api-key <value>`` flag
+    2. ``PAGESPEED_API_KEY`` environment variable
+    3. ``GOOGLE_API_KEY`` environment variable
+    4. A ``.env`` file in the current directory, the skill root, or
+       ``$HOME/.agentic-seo/.env`` (see ``env_loader.py``)
 
 Usage:
     python pagespeed.py https://example.com
     python pagespeed.py https://example.com --strategy mobile
     python pagespeed.py https://example.com --json
+    PAGESPEED_API_KEY=AIza... python pagespeed.py https://example.com
 """
 
 import argparse
 import json
 import sys
 import time
+
+from env_loader import get_env
 
 try:
     import requests
@@ -216,7 +227,8 @@ def main():
     parser.add_argument("--api-key", help="Google API key for higher rate limits")
 
     args = parser.parse_args()
-    result = get_pagespeed(args.url, strategy=args.strategy, api_key=args.api_key)
+    api_key = args.api_key or get_env("PAGESPEED_API_KEY", "GOOGLE_API_KEY")
+    result = get_pagespeed(args.url, strategy=args.strategy, api_key=api_key)
 
     if args.json:
         print(json.dumps(result, indent=2))

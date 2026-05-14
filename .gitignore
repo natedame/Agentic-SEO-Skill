@@ -2,3 +2,9 @@ scripts/__pycache__/
 scripts/*.pyc
 seo-report-*.html
 plan.md
+tmp/
+
+# Local secrets (never commit)
+.env
+.env.local
+.env.*.local

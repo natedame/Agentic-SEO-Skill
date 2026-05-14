@@ -401,11 +401,13 @@ def main():
     )
     parser.add_argument("url", help="Page URL to check")
     parser.add_argument("--entity", default="", help="Entity name to search (auto-detected from schema/title if omitted)")
-    parser.add_argument("--kg-api-key", default="", help="Google Knowledge Graph API key (optional, for enhanced lookup)")
+    parser.add_argument("--kg-api-key", default="", help="Google Knowledge Graph API key (optional). Falls back to GOOGLE_KG_API_KEY / GOOGLE_API_KEY env vars or .env file.")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
-    report = run_entity_check(args.url, entity_name=args.entity, kg_api_key=args.kg_api_key)
+    from env_loader import get_env
+    kg_api_key = args.kg_api_key or get_env("GOOGLE_KG_API_KEY", "GOOGLE_API_KEY")
+    report = run_entity_check(args.url, entity_name=args.entity, kg_api_key=kg_api_key)
 
     if args.json:
         print(json.dumps(report, indent=2, default=str))

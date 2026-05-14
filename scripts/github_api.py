@@ -27,9 +27,14 @@ class GitHubAPIError(RuntimeError):
 
 
 def get_token(cli_token: str = None) -> str:
-    """Resolve token from CLI override or standard environment variables."""
+    """Resolve token from CLI override, env vars, or .env file."""
     if cli_token:
         return cli_token.strip()
+    try:
+        from env_loader import load_env
+        load_env()
+    except Exception:
+        pass
     for env_key in ("GITHUB_TOKEN", "GH_TOKEN"):
         value = os.environ.get(env_key, "").strip()
         if value:

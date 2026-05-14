@@ -1,12 +1,22 @@
-# SEO Skill (Antigravity / Claude / Codex)
+# SEO Skill (Multi-IDE)
 
-An LLM-first SEO analysis skill for agent IDEs, with 16 specialized sub-skills, 10 specialist agents, and 33 scripts used as evidence collectors and workflow automation.
+An LLM-first SEO analysis skill for agent IDEs and AI coding assistants, with 16 specialized sub-skills, 10 specialist agents, and 33 scripts used as evidence collectors and workflow automation.
 
 ## IDE Compatibility
 
-- Antigravity IDE (`.agent/skills/seo`)
-- Claude Code (`~/.claude/skills/seo`)
-- Codex (`~/.codex/skills/seo`)
+The installer ships native formats for each tool — not just a generic copy:
+
+| Tool | Install location | Native format |
+|---|---|---|
+| Claude Code | `~/.claude/skills/seo` | Skill directory |
+| Codex CLI | `~/.codex/skills/seo` | Skill directory |
+| Antigravity IDE | `<project>/.agent/skills/seo` | Skill directory |
+| Claude Cowork | `<project>/.claude/skills/seo` | Project-scoped skill (commit to git) |
+| Cursor | `<project>/.cursor/rules/seo.mdc` + `.cursor/skills/seo/` | MDC rule |
+| Windsurf | `<project>/.windsurf/rules/seo.md` + `.windsurf/skills/seo/` | Windsurf rule |
+| Continue.dev | `<project>/.continue/prompts/seo.prompt` + `.continue/skills/seo/` | Slash command |
+| GitHub Copilot | `<project>/.github/copilot-instructions.md` + `.github/skills/seo/` | Repo instructions |
+| Cline | `<project>/.clinerules` + `.cline/skills/seo/` | Project rules |
 
 ## 📦 Current Inventory
 
@@ -19,13 +29,13 @@ An LLM-first SEO analysis skill for agent IDEs, with 16 specialized sub-skills, 
 Recommended GitHub repository description (About field):
 
 ```text
-LLM-first SEO skill for Antigravity, Claude, and Codex with 16 sub-skills, 10 specialist agents, and GitHub SEO workflows that output GITHUB-SEO-REPORT.md and GITHUB-ACTION-PLAN.md.
+LLM-first SEO skill for Claude Code, Codex, Antigravity, Cursor, Windsurf, Continue, Copilot, and Cline — 16 sub-skills, 10 specialist agents, and GitHub SEO workflows that output GITHUB-SEO-REPORT.md and GITHUB-ACTION-PLAN.md.
 ```
 
 Suggested GitHub topics:
 
 ```text
-seo, llm, github-seo, ai-search, geo, aeo, technical-seo, schema, core-web-vitals, codex, claude-code, antigravity
+seo, llm, github-seo, ai-search, geo, aeo, technical-seo, schema, core-web-vitals, codex, claude-code, antigravity, cursor, windsurf, copilot
 ```
 
 
@@ -99,90 +109,130 @@ Pre-built strategy templates for: **SaaS**, **E-commerce**, **Local Business**, 
 
 ---
 
-## 🔧 Installation (All IDEs)
+## 🔧 Installation
 
-### Quick Install Script (Antigravity / Claude / Codex)
+All `--online` commands below download the latest release package from GitHub automatically. With no `--target`, `--online` installs to every supported IDE.
+
+### Quick install (no cloning required)
+
+**Linux / macOS:**
+```bash
+# Default: installs to every target at once
+curl -fsSL https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/install.sh | bash -s -- --online
+
+# Claude Code only
+curl -fsSL https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/install.sh | bash -s -- --online --target claude
+
+# User-wide (Claude + Codex)
+curl -fsSL https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/install.sh | bash -s -- --online --target global
+
+# Every target, scoped to a project
+curl -fsSL https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/install.sh | bash -s -- --online --target all --project-dir /path/to/your/project
+```
+
+**Windows (PowerShell 7+):**
+```powershell
+# Download installer, then run with --online
+irm https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/install.ps1 -OutFile install.ps1
+
+# Default: installs to every target at once
+pwsh ./install.ps1 --online
+
+# Claude Code only
+pwsh ./install.ps1 --online --target claude
+
+# Every target, scoped to a project
+pwsh ./install.ps1 --online --target all --project-dir C:\path\to\your\project
+```
+
+### From source
 
 ```bash
-# 1) Clone
 git clone https://github.com/Bhanunamikaze/Agentic-SEO-Skill.git
 cd Agentic-SEO-Skill
 
-# 2) Install for your target
-# Antigravity (project-local):
-bash install.sh --target antigravity --project-dir /path/to/your/project
-
-# Claude:
+# Claude Code (most common)
 bash install.sh --target claude
 
-# Codex:
+# Codex
 bash install.sh --target codex
 
-# Global user install (Claude + Codex):
+# Claude Cowork / project-scoped (installs to .claude/skills/, commit to git to share with team)
+bash install.sh --target cowork --project-dir /path/to/your/project
+
+# GitHub Copilot Chat (writes .github/copilot-instructions.md)
+bash install.sh --target copilot --project-dir /path/to/your/project
+
+# Cursor AI (writes .cursor/rules/seo.mdc)
+bash install.sh --target cursor --project-dir /path/to/your/project
+
+# Windsurf (writes .windsurf/rules/seo.md)
+bash install.sh --target windsurf --project-dir /path/to/your/project
+
+# Cline (writes .clinerules)
+bash install.sh --target cline --project-dir /path/to/your/project
+
+# Continue.dev (writes .continue/prompts/seo.prompt)
+bash install.sh --target continue --project-dir /path/to/your/project
+
+# Antigravity (writes .agent/skills/seo)
+bash install.sh --target antigravity --project-dir /path/to/your/project
+
+# User-wide (Claude + Codex)
 bash install.sh --target global
 
-# All targets (Antigravity + Claude + Codex):
+# All project-local IDEs at once
+bash install.sh --target project --project-dir /path/to/your/project
+
+# Every target at once
 bash install.sh --target all --project-dir /path/to/your/project
 
-# Install from another local checkout:
-bash install.sh --target codex --repo-path /path/to/Agentic-SEO-Skill
+# With Python deps + Playwright (for visual analysis scripts)
+bash install.sh --target claude --install-deps --install-playwright
 ```
 
-### Install directly from GitHub (remote source mode):
+**Windows (PowerShell) — from source:**
+```powershell
+.\install.ps1 --target claude
+.\install.ps1 --target cursor --project-dir C:\path\to\project
+.\install.ps1 --target all    --project-dir C:\path\to\project
+```
 
+**Safer remote install (download, inspect, run):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/install.sh | \
-  bash -s -- --target codex
+curl -fsSLO https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/install.sh
+less install.sh                  # review before running
+bash install.sh --online
 ```
 
-### Manual Installation
+### All flags
 
-### Step 1: Clone the Repository
+| Flag | Default | Purpose |
+|---|---|---|
+| `--target <name>` | `claude` | Pick a target (see IDE Compatibility table). With `--online` and no flag, defaults to `all`. |
+| `--project-dir <path>` | cwd | Where to install project-local targets. |
+| `--skill-name <name>` | `seo` | Override the installed folder name for skills-dir targets. |
+| `--online` | off | Fetch the latest release/branch archive from GitHub instead of using the local tree. |
+| `--ref <branch-or-tag>` | `main` | Branch or tag to use in `--online` mode. |
+| `--repo-url <url>` | upstream | Override the source repo for remote clone. |
+| `--source <auto\|local\|remote>` | `auto` | Force the source resolution mode. |
+| `--repo-path <path>` | — | Use a specific local checkout as the install source. |
+| `--install-deps` | off | Also `pip install --user requests beautifulsoup4`. |
+| `--install-playwright` | off | Also install Playwright + Chromium (for visual analysis). |
+| `--force` | off | Overwrite an existing installed skill. (`--online` implies `--force`.) |
+| `-h`, `--help` | — | Show the full usage block. |
 
-```bash
-git clone https://github.com/Bhanunamikaze/Agentic-SEO-Skill.git
-```
+### Python dependencies (manual)
 
-### Step 2: Install Python Dependencies
+If you skipped `--install-deps`:
 
 ```bash
 pip install requests beautifulsoup4
-```
-
-**Optional** — for visual analysis (screenshots & layout checks):
-```bash
+# Optional — for visual analysis (screenshots & layout checks):
 pip install playwright && playwright install chromium
 ```
 
-### Step 3: Choose Target Directory (Manual Install)
-
-If you prefer not to use `install.sh`, copy or symlink manually:
-
-#### Antigravity IDE (project-local)
-
-```bash
-mkdir -p .agent/skills
-cp -r /path/to/Agentic-SEO-Skill .agent/skills/seo
-# or: ln -s /path/to/Agentic-SEO-Skill .agent/skills/seo
-```
-
-#### Claude Code (user-global)
-
-```bash
-mkdir -p ~/.claude/skills
-cp -r /path/to/Agentic-SEO-Skill ~/.claude/skills/seo
-# or: ln -s /path/to/Agentic-SEO-Skill ~/.claude/skills/seo
-```
-
-#### Codex (user-global)
-
-```bash
-mkdir -p ~/.codex/skills
-cp -r /path/to/Agentic-SEO-Skill ~/.codex/skills/seo
-# or: ln -s /path/to/Agentic-SEO-Skill ~/.codex/skills/seo
-```
-
-### Step 4: Verify Triggering
+### Verify Triggering
 
 The skill will auto-trigger when you mention SEO-related keywords in your IDE. Try:
 
@@ -406,6 +456,24 @@ Example generated dashboard:
 ## ⚙️ Optional Script Workflow
 
 Use scripts when you need additional verification or structured JSON outputs.
+
+### Credentials (`.env` file)
+
+Some scripts use third-party APIs. Instead of pasting keys on the command line every time, copy `.env.example` to `.env` and fill in the keys you have:
+
+```bash
+cp .env.example .env
+$EDITOR .env   # add PAGESPEED_API_KEY, GITHUB_TOKEN, GSC_CREDENTIALS_PATH, etc.
+```
+
+`.env` is gitignored. The loader searches the current directory, the skill root, and `~/.agentic-seo/.env` (in that order). Real shell-exported env vars and `--flag` overrides always win.
+
+| Variable | Used by | How to get one |
+|---|---|---|
+| `PAGESPEED_API_KEY` | `pagespeed.py`, `generate_report.py` | [Google Cloud Console](https://console.cloud.google.com/) → enable "PageSpeed Insights API" |
+| `GOOGLE_KG_API_KEY` | `entity_checker.py` | Same console → enable "Knowledge Graph Search API" |
+| `GITHUB_TOKEN` *(or `GH_TOKEN`)* | All `github_*.py` scripts | A PAT with `public_repo` is enough; `gh auth login` works as a fallback |
+| `GSC_CREDENTIALS_PATH` | `gsc_checker.py`, `link_profile.py` | Path to a Google service-account JSON with Search Console access |
 
 ```bash
 # GitHub auth setup for repository SEO scripts (choose one)

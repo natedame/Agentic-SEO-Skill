@@ -133,6 +133,11 @@ python3 <SKILL_DIR>/scripts/internal_links.py <url> --depth 1 --max-pages 20
 # Extract article content and perform keyword research for LLM-driven optimization
 python3 <SKILL_DIR>/scripts/article_seo.py <url> --keyword "<optional_target_keyword>" --json
 
+# Credentials for paid/auth APIs (PageSpeed, GitHub, GSC, Knowledge Graph)
+# are loaded from CLI flags, then env vars, then a `.env` file in the repo
+# root / cwd / `~/.agentic-seo/.env`. Copy `.env.example` to `.env` and fill
+# in only the keys you have. Never paste secrets in prompts.
+
 # GitHub repository SEO (provider fallback: auto|api|gh)
 # Auth setup (choose one):
 # export GITHUB_TOKEN="ghp_xxx"   # or export GH_TOKEN="ghp_xxx"
