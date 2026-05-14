@@ -25,6 +25,7 @@ def inventory(source: str, fetch_images: bool = False, timeout: int = 15) -> dic
             "has_alt": img.get("alt") is not None and img.get("alt") != "",
             "width": img.get("width"),
             "height": img.get("height"),
+            "is_responsive_fill": bool(img.get("is_responsive_fill")),
             "loading": img.get("loading"),
             "srcset": bool(img.get("srcset")),
             "sizes": bool(img.get("sizes")),
@@ -33,7 +34,7 @@ def inventory(source: str, fetch_images: bool = False, timeout: int = 15) -> dic
         }
         if not row["has_alt"]:
             issues.append({"severity": "warning", "message": "Image missing alt text", "url": src})
-        if not row["width"] or not row["height"]:
+        if not row["is_responsive_fill"] and (not row["width"] or not row["height"]):
             issues.append({"severity": "info", "message": "Image missing explicit dimensions", "url": src})
         if row["likely_lcp_candidate"] and row["loading"] == "lazy":
             issues.append({"severity": "warning", "message": "Likely LCP image is lazy-loaded", "url": src})

@@ -34,3 +34,23 @@ def test_url_quality_flags_tracking_and_facets():
     assert "uppercase_path" in row["flags"]
     assert "tracking_parameters" in row["flags"]
     assert "facet_parameters" in row["flags"]
+
+
+def test_parse_html_marks_next_image_fill_as_responsive_fill():
+    parse_html = load_script("parse_html")
+    result = parse_html.parse_html(
+        '<img alt="Hero" src="/_next/image?url=hero.jpg&w=1200&q=75" data-nimg="fill">'
+    )
+
+    assert result["images"][0]["width"] is None
+    assert result["images"][0]["height"] is None
+    assert result["images"][0]["is_responsive_fill"] is True
+
+
+def test_parse_html_marks_absolute_full_size_image_as_responsive_fill():
+    parse_html = load_script("parse_html")
+    result = parse_html.parse_html(
+        '<img alt="Hero" src="/hero.jpg" style="position: absolute; inset: 0; width: 100%; height: 100%;">'
+    )
+
+    assert result["images"][0]["is_responsive_fill"] is True

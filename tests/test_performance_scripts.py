@@ -96,3 +96,26 @@ def test_bare_local_html_filename_is_not_treated_as_url(tmp_path, monkeypatch):
 
     assert result["image_count"] == 1
     assert result["fetch_error"] is None
+
+
+def test_image_inventory_treats_next_fill_image_as_dimension_safe(tmp_path):
+    html = tmp_path / "next-fill.html"
+    html.write_text(
+        """
+        <!doctype html>
+        <img alt="Hero" src="/_next/image?url=hero.jpg&w=1200&q=75" data-nimg="fill">
+        <img alt="Inline" src="/inline.jpg">
+        """,
+        encoding="utf-8",
+    )
+    image_inventory = load_script("image_inventory")
+
+    result = image_inventory.inventory(str(html))
+    dimension_issues = [
+        issue for issue in result["issues"]
+        if issue["message"] == "Image missing explicit dimensions"
+    ]
+
+    assert result["images"][0]["is_responsive_fill"] is True
+    assert len(dimension_issues) == 1
+    assert dimension_issues[0]["url"] == "/inline.jpg"

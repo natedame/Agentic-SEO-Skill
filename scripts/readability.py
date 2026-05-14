@@ -29,6 +29,9 @@ except ImportError:
     from scripts.lib.safe_http import safe_get
 
 
+PARAGRAPH_BLOCK_TAGS = ("p", "li", "blockquote")
+
+
 def count_syllables(word: str) -> int:
     """Count syllables in a word using heuristic rules."""
     word = word.lower().strip()
@@ -60,7 +63,20 @@ def extract_text(html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
         for tag in soup(["script", "style", "nav", "header", "footer", "aside"]):
             tag.decompose()
-        return soup.get_text(separator="\n", strip=True)
+        paragraph_blocks = []
+        for tag in soup.find_all(PARAGRAPH_BLOCK_TAGS):
+            if tag.find_parent(PARAGRAPH_BLOCK_TAGS):
+                continue
+            block_text = tag.get_text(separator=" ", strip=True)
+            if block_text:
+                paragraph_blocks.append(block_text)
+        if paragraph_blocks:
+            return "\n\n".join(paragraph_blocks)
+        text = soup.get_text(separator="\n", strip=True)
+        text = re.sub(r"\n[ \t]*\n(?:[ \t]*\n)+", "\n\n", text)
+        text = re.sub(r"[ \t]+\n", "\n", text)
+        text = re.sub(r"\n[ \t]+", "\n", text)
+        return text.strip()
     else:
         # Basic fallback: strip tags
         text = re.sub(r'<(script|style)[^>]*>.*?</\1>', '', html, flags=re.DOTALL | re.IGNORECASE)

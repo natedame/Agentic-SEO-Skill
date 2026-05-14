@@ -1,4 +1,4 @@
-<!-- Updated: 2026-05-15 -->
+<!-- Updated: 2026-05-14 -->
 
 # Link Building Guidelines
 

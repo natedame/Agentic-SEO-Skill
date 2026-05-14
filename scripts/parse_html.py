@@ -69,6 +69,13 @@ def _rel_contains(value: Any, token: str) -> bool:
     return token in values
 
 
+def _is_responsive_fill_image(img) -> bool:
+    if img.get("data-nimg") == "fill":
+        return True
+    style = re.sub(r"\s+", "", (img.get("style") or "").lower())
+    return "position:absolute" in style and "width:100%" in style and "height:100%" in style
+
+
 def parse_html(
     html: str,
     base_url: Optional[str] = None,
@@ -218,12 +225,14 @@ def parse_html(
         src = img.get("src", "")
         if base_url and src:
             src = urljoin(base_url, src)
+        is_responsive_fill = _is_responsive_fill_image(img)
 
         result["images"].append({
             "src": src,
             "alt": img.get("alt"),
             "width": img.get("width"),
             "height": img.get("height"),
+            "is_responsive_fill": is_responsive_fill,
             "loading": img.get("loading"),
         })
 

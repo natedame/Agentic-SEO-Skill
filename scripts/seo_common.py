@@ -61,6 +61,13 @@ def normalize_url(url: str, base: str | None = None, default_scheme: str = "http
     return url
 
 
+def is_responsive_fill_image(img) -> bool:
+    if img.get("data-nimg") == "fill":
+        return True
+    style = re.sub(r"\s+", "", (img.get("style") or "").lower())
+    return "position:absolute" in style and "width:100%" in style and "height:100%" in style
+
+
 def origin(url: str) -> str:
     parsed = urlparse(normalize_url(url))
     return f"{parsed.scheme}://{parsed.netloc}"
@@ -194,11 +201,13 @@ def parse_html(html: str, base_url: str = "") -> dict:
         src = img.get("src") or img.get("data-src") or ""
         if src and base_url:
             src = normalize_url(src, base_url)
+        is_responsive_fill = is_responsive_fill_image(img)
         images.append({
             "src": src,
             "alt": img.get("alt"),
             "width": img.get("width"),
             "height": img.get("height"),
+            "is_responsive_fill": is_responsive_fill,
             "loading": img.get("loading"),
             "srcset": img.get("srcset"),
             "sizes": img.get("sizes"),
