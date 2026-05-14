@@ -581,9 +581,10 @@ if ($ONLINE_MODE) {
         $latestTag = $releaseInfo.tag_name
         if (-not [string]::IsNullOrWhiteSpace($latestTag)) {
             Write-Host "  Latest release: $latestTag"
-            # Pick the first archive-like asset (zip / tar.gz / tgz), case-insensitive.
+            # Expand-Archive only handles .zip — never pick a .tar.gz asset
+            # here even if one is listed first by the API.
             $asset = $releaseInfo.assets |
-                Where-Object { $_.name -match '\.(zip|tar\.gz|tgz)$' } |
+                Where-Object { $_.name -match '\.zip$' } |
                 Select-Object -First 1
             if ($asset) {
                 $downloadUrl  = $asset.browser_download_url
@@ -603,9 +604,11 @@ if ($ONLINE_MODE) {
         $downloadDesc = "branch archive: $GITHUB_REF"
     }
     Write-Host "  Downloading $downloadDesc..."
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -ErrorAction Stop
 
-    Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
+    # Expand-Archive's default error action is Continue on PS 5.1 — make it
+    # fatal so a bad download surfaces here, not as "SKILL.md not found".
+    Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force -ErrorAction Stop
     Remove-Item -Path $zipPath -Force
 
     # Locate SKILL.md. Release-asset zips may be flat (SKILL.md at the root);
