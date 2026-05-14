@@ -3,6 +3,7 @@
 - [[Home]]
 - [[Installation]]
 - [[Command Reference]]
+- [[Example Prompts]]
 - [[Audit Workflow]]
 - [[Reports and Outputs]]
 - [[Script Inventory]]

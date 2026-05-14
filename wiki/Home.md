@@ -29,6 +29,7 @@ The package currently includes 16 sub-skills, 10 specialist agents, and 89 scrip
 
 - [[Installation]]: install targets, release packages, optional dependencies.
 - [[Command Reference]]: supported `seo ...` commands.
+- [[Example Prompts]]: detailed prompts for audits, technical checks, content, schema, GEO/AEO, and GitHub SEO.
 - [[Audit Workflow]]: what to run for page, site, article, and GitHub audits.
 - [[Reports and Outputs]]: how to interpret generated reports.
 - [[Script Inventory]]: script groups and when to use them.
@@ -60,4 +61,3 @@ Release archives intentionally include only the runtime skill payload:
 - `resources/`
 
 Repository-only files such as tests, CI configuration, governance docs, and local generated audit output are not needed inside an installed skill bundle.
-

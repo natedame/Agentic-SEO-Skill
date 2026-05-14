@@ -121,7 +121,7 @@ The rubric standardizes:
 - **GitHub Data** — API/auth fallback and traffic archival continuity
 - **Verifier (Global)** — dedupe/contradiction suppression before final reporting
 
-## 📚 Reference Data (Updated Feb 2026)
+## 📚 Reference Data
 
 - Core Web Vitals thresholds (INP replaced FID)
 - E-E-A-T framework (Sept 2025 QRG + Dec 2025 core update)
@@ -129,6 +129,8 @@ The rubric standardizes:
 - Content quality gates & word count minimums
 - Google SEO quick reference
 - LLM audit rubric for consistent outputs
+
+Each reference file carries its own `<!-- Updated: YYYY-MM-DD -->` marker. CI checks those markers with `scripts/reference_freshness.py` and flags stale references for review.
 
 ## 🏭 Industry Templates
 
@@ -272,6 +274,8 @@ The skill will auto-trigger when you mention SEO-related keywords in your IDE. T
 ---
 
 ## 💬 Example Prompts (hackingdream.net)
+
+For expanded copy-paste prompt templates across full audits, technical SEO, schema, content, GEO/AEO, local SEO, ecommerce, and GitHub SEO, see the [Example Prompts wiki](https://github.com/Bhanunamikaze/Agentic-SEO-Skill/wiki/Example-Prompts).
 
 ### How Prompts Route to Agents & Scripts
 
