@@ -87,31 +87,31 @@ iwr https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/insta
 Install every target:
 
 ```powershell
-pwsh ./install.ps1 --online
+powershell -ExecutionPolicy Bypass -File .\install.ps1 --online
 ```
 
 Claude only:
 
 ```powershell
-pwsh ./install.ps1 --online --target claude
+powershell -ExecutionPolicy Bypass -File .\install.ps1 --online --target claude
 ```
 
 Codex only:
 
 ```powershell
-pwsh ./install.ps1 --online --target codex
+powershell -ExecutionPolicy Bypass -File .\install.ps1 --online --target codex
 ```
 
 Everything for a project:
 
 ```powershell
-pwsh ./install.ps1 --online --target all --project-dir C:\path\to\your\project
+powershell -ExecutionPolicy Bypass -File .\install.ps1 --online --target all --project-dir C:\path\to\your\project
 ```
 
 Pin a release tag:
 
 ```powershell
-pwsh ./install.ps1 --online --ref v3.0.0 --target codex --force
+powershell -ExecutionPolicy Bypass -File .\install.ps1 --online --ref v3.0.0 --target codex --force
 ```
 
 ## Install From Source
@@ -204,7 +204,7 @@ PowerShell equivalent:
 ```powershell
 iwr https://raw.githubusercontent.com/Bhanunamikaze/Agentic-SEO-Skill/main/install.ps1 -OutFile install.ps1
 notepad install.ps1
-pwsh ./install.ps1 --online --target codex
+powershell -ExecutionPolicy Bypass -File .\install.ps1 --online --target codex
 ```
 
 ## Installer Flags
@@ -326,6 +326,6 @@ API failures do not mean the installation failed. They should be reported as env
 If PowerShell blocks local scripts, run PowerShell as a user with script execution allowed, or use:
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File ./install.ps1 --online --target codex
+powershell -ExecutionPolicy Bypass -File .\install.ps1 --online --target codex
 ```
 
