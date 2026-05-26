@@ -35,7 +35,7 @@ Installs the SEO analysis skill for AI coding assistants and agent IDEs.
 
 Each IDE target installs the skill in that IDE's native format:
   claude / codex / antigravity  ->  skills/ directory  (native skill support)
-  cowork                        ->  .claude/skills/   (project-scoped; commit to git)
+  cowork                        ->  <project>/<skill>.plugin  (Cowork plugin file; import via Cowork UI)
   cursor                        ->  .cursor/rules/seo.mdc  (Cursor MDC rule)
   windsurf                      ->  .windsurf/rules/seo.md (Windsurf rule)
   copilot                       ->  .github/copilot-instructions.md
@@ -51,7 +51,7 @@ Options:
         claude       -> ~/.claude/skills/seo
         codex        -> ~/.codex/skills/seo
         antigravity  -> <project>/.agent/skills/seo
-        cowork       -> <project>/.claude/skills/seo  (project-scoped, commit to git)
+        cowork       -> <project>/seo.plugin  (Cowork plugin file; import via Cowork UI)
         cursor       -> <project>/.cursor/rules/seo.mdc
         windsurf     -> <project>/.windsurf/rules/seo.md
         continue     -> <project>/.continue/prompts/seo.prompt
@@ -405,9 +405,69 @@ install_copilot() {
     copy_skill "${SRC_DIR}" "${github_dir}/skills/${SKILL_NAME}" "GitHub Copilot (.github/skills/)" || true
 }
 
-# Claude Cowork — project-scoped .claude/skills/ (shared via git with the whole team)
+# Claude Cowork — packages the skill as a .plugin file (zip) for import via Cowork UI
+# Structure: .claude-plugin/plugin.json  +  skills/<name>/  (no flat .claude/skills/ copy)
 install_cowork() {
-    copy_skill "${SRC_DIR}" "${PROJECT_DIR}/.claude/skills/${SKILL_NAME}" "Cowork (.claude/skills/)"
+    local plugin_file="${PROJECT_DIR}/${SKILL_NAME}.plugin"
+
+    if [[ -f "${plugin_file}" && "${FORCE}" -ne 1 ]]; then
+        echo "  Warning: Cowork plugin already exists: ${plugin_file}" >&2
+        echo "  Use --force to overwrite." >&2
+        return 1
+    fi
+
+    mkdir -p "${PROJECT_DIR}"
+
+    local build_dir
+    build_dir="$(mktemp -d)"
+
+    # Build required plugin directory layout
+    mkdir -p "${build_dir}/.claude-plugin"
+    mkdir -p "${build_dir}/skills/${SKILL_NAME}"
+
+    # Manifest — .claude-plugin/plugin.json (NOT plugin.json at root)
+    cat > "${build_dir}/.claude-plugin/plugin.json" <<EOF
+{
+  "name": "${SKILL_NAME}",
+  "version": "1.0.0",
+  "description": "LLM-first SEO audits for websites, blog posts, and GitHub repos"
+}
+EOF
+
+    # Populate skill files into the plugin's skills/ directory
+    if ! copy_skill "${SRC_DIR}" "${build_dir}/skills/${SKILL_NAME}" "Cowork plugin build"; then
+        rm -rf "${build_dir}"
+        return 1
+    fi
+
+    # Package as .plugin (zip archive)
+    if command -v zip >/dev/null 2>&1; then
+        (cd "${build_dir}" && zip -rq "${plugin_file}" . \
+            --exclude "*.DS_Store" \
+            --exclude "__pycache__/*" \
+            --exclude "*.pyc")
+    else
+        python3 - "${build_dir}" "${plugin_file}" <<'PYEOF'
+import zipfile, os, sys
+build_dir, plugin_file = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(plugin_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk(build_dir):
+        dirs[:] = [d for d in dirs if d != '__pycache__']
+        for fname in files:
+            if fname.endswith('.pyc'):
+                continue
+            abs_path = os.path.join(root, fname)
+            zf.write(abs_path, os.path.relpath(abs_path, build_dir))
+PYEOF
+    fi
+
+    rm -rf "${build_dir}"
+    echo "  Created Cowork plugin: ${plugin_file}"
+    echo ""
+    echo "  To install in Cowork:"
+    echo "    1. Open claude.ai → Cowork"
+    echo "    2. Go to Customize → Plugins → Install from file"
+    echo "    3. Select: ${plugin_file}"
 }
 
 # Cline — .clinerules  (project-level instruction file)

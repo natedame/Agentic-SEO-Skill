@@ -77,7 +77,7 @@ Agentic SEO Skill Installer (Windows / PowerShell)
 
 Each IDE target installs the skill in that IDE's native format:
   claude / codex / antigravity  ->  skills\ directory  (native skill support)
-  cowork                        ->  .claude\skills\    (project-scoped; commit to git)
+  cowork                        ->  <project>\<skill>.plugin  (Cowork plugin file; import via Cowork UI)
   cursor                        ->  .cursor\rules\seo.mdc   (MDC rule)
   windsurf                      ->  .windsurf\rules\seo.md  (Windsurf rule)
   copilot                       ->  .github\copilot-instructions.md
@@ -93,7 +93,7 @@ Options:
         claude       ->  ~\.claude\skills\seo
         codex        ->  ~\.codex\skills\seo
         antigravity  ->  <project>\.agent\skills\seo
-        cowork       ->  <project>\.claude\skills\seo  (project-scoped, commit to git)
+        cowork       ->  <project>\seo.plugin  (Cowork plugin file; import via Cowork UI)
         cursor       ->  <project>\.cursor\rules\seo.mdc
         windsurf     ->  <project>\.windsurf\rules\seo.md
         continue     ->  <project>\.continue\prompts\seo.prompt
@@ -456,11 +456,47 @@ function Install-Copilot {
     try { Copy-Skill -Src $Src -Dest $dest -Label 'GitHub Copilot (.github/skills/)' } catch { Write-Warning "Skipped skill copy: $_" }
 }
 
-# Claude Cowork — project-scoped .claude/skills/
+# Claude Cowork — packages the skill as a .plugin file (zip) for import via Cowork UI
+# Structure: .claude-plugin\plugin.json  +  skills\<name>\  (not .claude\skills\)
 function Install-Cowork {
     param([Parameter(Mandatory = $true)][string]$Src)
-    $dest = Join-Path (Join-Path $PROJECT_DIR '.claude/skills') $SKILL_NAME
-    Copy-Skill -Src $Src -Dest $dest -Label 'Cowork (.claude/skills/)'
+    $pluginFile = Join-Path $PROJECT_DIR "$SKILL_NAME.plugin"
+
+    if ((Test-Path -LiteralPath $pluginFile -PathType Leaf) -and (-not $FORCE)) {
+        Write-Warning "  Cowork plugin already exists: $pluginFile`n  Use --force to overwrite."
+        return
+    }
+
+    # Build plugin structure in a temp directory
+    $buildDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path (Join-Path $buildDir '.claude-plugin') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $buildDir "skills\$SKILL_NAME") -Force | Out-Null
+
+    # Manifest goes in .claude-plugin\plugin.json (NOT at the plugin root)
+    $manifest = "{`n  `"name`": `"$SKILL_NAME`",`n  `"version`": `"1.0.0`",`n  `"description`": `"LLM-first SEO audits for websites, blog posts, and GitHub repos`"`n}"
+    Set-Content -LiteralPath (Join-Path $buildDir '.claude-plugin\plugin.json') -Value $manifest -Encoding UTF8
+
+    # Populate skill files using Copy-Skill (handles all exclusions)
+    Copy-Skill -Src $Src -Dest (Join-Path $buildDir "skills\$SKILL_NAME") -Label 'Cowork plugin build'
+
+    # Ensure output directory exists
+    if (-not (Test-Path -LiteralPath $PROJECT_DIR)) {
+        New-Item -ItemType Directory -Path $PROJECT_DIR -Force | Out-Null
+    }
+    if (Test-Path -LiteralPath $pluginFile) { Remove-Item -LiteralPath $pluginFile -Force }
+
+    # Compress-Archive rejects non-.zip extensions; ZipFile has no such restriction
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($buildDir, $pluginFile)
+
+    Remove-Item -LiteralPath $buildDir -Recurse -Force -ErrorAction SilentlyContinue
+
+    Write-Host "  Created Cowork plugin: $pluginFile"
+    Write-Host ''
+    Write-Host '  To install in Cowork:'
+    Write-Host '    1. Open claude.ai -> Cowork'
+    Write-Host '    2. Go to Customize -> Plugins -> Install from file'
+    Write-Host "    3. Select: $pluginFile"
 }
 
 # Cline — .clinerules
