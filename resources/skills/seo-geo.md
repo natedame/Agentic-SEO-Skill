@@ -41,6 +41,18 @@ description: >
 
 ## GEO Analysis Criteria (Updated)
 
+**Score each dimension mechanically (GEN-5188 BINEVAL — do NOT free-score `XX/100`).** For each dimension below, treat its positive-signal list ("Strong signals" or "Check for") as a FIXED yes/no checklist per the Binary-Checklist Scoring Protocol (`llm-audit-rubric.md` §11): count how many positive signals are present, each with evidence.
+```
+dimension_score = round(100 × positive_present / positive_total)   # then − 10 per Weak signal present, capped at −30, floor 0
+```
+(Weak-signal deduction is capped at −30 total, mirroring §11's capped-penalty discipline; dimensions with no "Weak signals" list — Multi-Modal, Technical — take no deduction.)
+Roll the five up to the overall by their weights (fixed denominators, no gut):
+```
+GEO Readiness = round( Σ dimension_score × weight )
+weights: Citability .25 · Structural .20 · Multi-Modal .15 · Authority .20 · Technical .20
+```
+Same page + same checklists → same GEO Readiness every run. Show each dimension's `passed/total` in the output.
+
 ### 1. Citability Score (25%)
 
 **Optimal passage length: 134-167 words** for AI citation.
