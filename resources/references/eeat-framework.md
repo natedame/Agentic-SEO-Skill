@@ -43,6 +43,21 @@ Topics requiring **highest** E-E-A-T standards (but E-E-A-T now matters everywhe
 
 ---
 
+## Converting signals to a verdict (deterministic — GEN-5188 BINEVAL)
+
+Each factor below lists a fixed "Signals to Check". Derive the factor's Strong/Moderate/Weak/None verdict by COUNTING how many of THAT factor's signals are present (each a yes/no with evidence, per the Binary-Checklist Scoring Protocol in `llm-audit-rubric.md` §11) against that factor's own signal count — do NOT gut-assign it:
+
+| Signals present (of the factor's total) | Verdict |
+|-----------------------------------------|---------|
+| ≥ 2/3 present | **Strong** |
+| ≥ 1/3 and < 2/3 present | **Moderate** |
+| ≥ 1 but < 1/3 present | **Weak** |
+| 0 present | **None** |
+
+The per-factor "Scoring" prose below describes what each verdict looks like; the signal COUNT is what selects it. Then map the four verdicts to the /25 per-factor and 0–100 overall via the Overall Scoring Guide at the bottom.
+
+---
+
 ## Experience (Weight: 20%)
 
 First-hand knowledge and personal involvement with the topic.

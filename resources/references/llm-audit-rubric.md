@@ -132,38 +132,42 @@ Impact: <why this matters>
 Fix: <clear implementation step>
 ```
 
-## 11) Chain-of-Thought Scoring Protocol
+## 11) Binary-Checklist Scoring Protocol
 
-Use this procedure for every scored category to minimize hallucination and improve reproducibility.
+Score every category from a FIXED yes/no checklist with a fixed denominator — never from invented, self-capped signal tallies. This is the CheckEval pattern (decompose into independent binary checks, roll up mechanically): reproducible run-to-run because the denominator does not float, and debuggable because you can see exactly which checks failed. Each category score produced here is what the weighted rollup in `resources/config/scoring.json` averages into the overall SEO Health Score.
 
-**Before assigning any numeric score, work through these steps explicitly:**
+**Why the old ratio was replaced:** `base_score = positive_count / (positive_count + deficit_count)` let the model invent BOTH counts (each capped at "max 5"), so the same page scored differently depending on how many signals it happened to name. A fixed checklist removes that floating denominator.
 
-### Step 1 — List positive signals (max 5)
-For each signal, one sentence + one piece of evidence from the page or script output.
+**For each scored category:**
 
-### Step 2 — List deficit signals (max 5)
-For each deficit, one sentence + specific evidence of what is absent or broken.
+### Step 1 — Fix the checklist FIRST (before looking at the score)
+- If the category has a pre-authored yes/no checklist, use it EXACTLY (E-E-A-T → `eeat-framework.md` "Signals to Check"; GEO → `seo-geo.md` per-dimension signal lists). Do not add, drop, cap, or reorder items.
+- If the category has no pre-authored list, enumerate its checks into an explicit yes/no list and FREEZE it before scoring. No "max 5" cap — list every real check.
+- The frozen list length is the fixed denominator (`total`).
 
-### Step 3 — Calculate base score
+### Step 2 — Answer each item independently
+For each checklist item record:
+- **pass / fail** — a genuine binary (pass = the page satisfies it). If an item is truly N/A for this page type, mark **N/A** and exclude it from the denominator, noting why.
+- **Evidence** — one specific proof from the page or script output.
+- **Confidence** — Confirmed / Likely / Hypothesis. Never score a Hypothesis as a pass.
+
+### Step 3 — Roll up mechanically
 ```
-base_score = (positive_count / (positive_count + deficit_count)) × 100
+category_score = round(100 × passed / total)      # total = frozen checklist length − genuine N/A
 ```
+No pos/(pos+deficit), no self-cap: same page, same checklist → same score every run.
 
-### Step 4 — Apply severity penalties
+### Step 4 — Apply severity penalties (unchanged)
 - Each **Critical** finding: −15 points
 - Each **Warning** finding: −5 points
 - Maximum penalty cap: −50 (floor = 0)
-
 ```
-final_score = max(0, base_score - (critical_count × 15) - (warning_count × 5))
+final_score = max(0, category_score − (critical_count × 15) − (warning_count × 5))
 ```
 
-### Step 5 — Write one justification sentence
-State the score, what drove it up, and what penalized it:
+### Step 5 — Show the derivation
+State `passed/total` and the failed items so the number is auditable:
 
-> "Score of 62 reflects strong canonical setup and mobile-responsive layout (+), penalized by missing JSON-LD schema (Critical, −15) and two images lacking alt text (Warning×2, −10)."
+> "On-Page 71: 5/7 checks pass; failed — missing JSON-LD schema (Critical, −15), two images lacking alt text (Warning×2, −10). Final 46."
 
-### Why this matters
-Explicit derivation reduces score variance from ±20 to ±8 across equivalent pages, aligning with the anti-hallucination requirements in section 9.
-
-> **Rule**: If you cannot complete Steps 1–3 due to missing evidence, show `Score: Insufficient data` rather than guessing.
+> **Rule (N/A is bounded — it must not become a denominator-shrink loophole):** mark an item **N/A only when it is genuinely inapplicable to this page type** (not merely inconvenient or failing — a failing item is a **fail**, never an N/A). Hard ceiling: **if more than 1/3 of a category's checklist is N/A, the category scores `Insufficient data`**, not a passed/total number — so the denominator can't be gamed down silently. Never guess a pass.
